@@ -1,0 +1,215 @@
+---
+title: 'Reporte Final de "los peces y el mercurio'
+author: "Amy Murakami Tsutsumi - A01750185"
+date: "2022-10-20"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+\begin{center} Inteligencia Artifical para la Ciencia de Datos II (Grupo 501) \end{center}
+
+\begin{center} Módulo 5: Estadística Avanzada para ciencia de datos \end{center}
+
+
+# 1. Resumen 
+
+La problemática a resolver es identificar los principales factores que influyen en el nivel de contaminación por mercurio en los peces que se encuentran en el lago de Florida. Los métodos y técnicas estadísticas utilizadas son la prueba de normalidad de Mardia, la prueba de Anderson Darling, gráfico de contorno de la normal multivariada, la distancia de Mahalanobis, gráfico QQplot multivariado y análisis de componentes principales (matriz de correlaciones, gráfico de scree plot y contribución de variables). Después de todo el proceso de análisis se obtuvo que los factores más influyentes son la alcalinidad, PH, concentración media de mercurio, mínimo de concentración de mercurio, máximo de concentración de mercurio y estimación de la concentración de mercurio en el pez de 3 años.
+
+# 2. Introducción 
+
+Este portafolio de implementación tiene el propósito de utilizar herramientas estadísticas vistas en el módulo cinco para poder analizar la información y de esta manera se pueda contestar la pregunta de investigación establecida. El problema consiste en la contaminación por mercurio de los peces que se encuentran en agua dulce, por lo tanto, se utilizará un dataset con información de 53 lagos de Florida. El dataset contiene las siguientes variables: 
+
+* X1: Número de identificación 
+* X2: Nombre del lago 
+* X3: Alcalinidad (mg/l de carbonatode calcio) 
+* X4: PH 
+* X5: Calcio (mg/l) 
+* X6: Clorofila (mg/l) 
+* X7: Concentración media de mercurio (parte por millón) en el tejido muscular del grupo de peces estudiados en cada lago 
+* X8: Número de peces estudiados en el lago 
+* X9: Mínimo de la concentración de mercurio en cada grupo de peces 
+* X10: Máximo de la concentración de mercurio en cada grupo de peces 
+* X11: Estimación (mediante regresión) de la concentración de mercurio en el pez de 3 años (o promedio de mercurio cuando la edad no está disponible)
+* X12: Indicador de la edad de los peces (0: jóvenes; 1: maduros)
+
+La pregunta que se debe contestar a lo largo de la implementación es la siguiente: ¿cuáles son los principales factores que influyen en el nivel de contaminación por mercurio en los peces de los lagos de Florida? Este análisis es de suma importancia para determinar cuáles son las principales causas de la contaminación en los peces. Esta información no sólo afecta a los peces, sino que a la salud humana, ya que los humanos consumimos pescado y puede resultar en algo dañino.
+
+Por lo tanto, se realizará un análisis de normalidad para identificar las variables que son normales y también detectar posible normalidad multivariada de grupos de variables. Al igual que un análisis de componentes principales con toda la base de datos para poder identificar los factores principales que generan la contaminación por mercurio de los peces en agua dulce. 
+
+
+# 3. Análisis de resultados 
+
+## 3.1 Análisis de normalidad de las variables continuas para identificar variables normales. 
+
+```{r}
+db=read.csv("mercurio.csv") #leer la base de datos
+X3 = db$X3 # Alcalinidad (mg/l de carbonato de calcio)
+X4 = db$X4 # PH
+X5 = db$X5 # Calcio (mg/l)
+X6 = db$X6 # Clorofila (mg/l)
+X7 = db$X7 # Concentración media de mercurio (parte por millón) en el tejido muscular del grupo de peces estudiados en cada lago
+X8 = db$X8 # Número de peces estudiados en el lago
+X9 = db$X9 # Mínimo de la concentración de mercurio en cada grupo de peces
+X10 = db$X10 # Máximo de la concentración de mercurio en cada grupo de peces
+X11 = db$X11 # Estimación (mediante regresión) de la concentración de mercurio en el pez de 3 años (o promedio de mercurio cuando la edad no está disponible)
+X12 = db$X12 # Indicador de la edad de los peces (0: jóvenes; 1: maduros)
+dbNum = db[3:11]
+```
+
+### A. Realice la prueba de normalidad de Mardia y la prueba de Anderson Darling para identificar las variables que son normales y detectar posible normalidad multivariada de grupos de variables.
+
+```{r}
+library(MVN)
+## Test de Multinomalidad: Método Sesgo y kurtosis de Mardia
+mvn(dbNum,subset = NULL,mvn = "mardia", covariance = FALSE,showOutliers = FALSE, alpha=0.05)
+```
+
+De acuerdo con la prueba de Mardia y Anderson Darling, las variables que tienen normalidad son la X4 y X10. Además, al observar las medidas descriptivas se puede notar la variabilidad de las variables utilizando el cociente entre la desviación estándar y la media. De esta forma, se pueden distinguir las variables en las que la media es más confiable ya que tienen una menor variabilidad, por ejemplo, la X4 (0.19549904), X10 (0.59694683), X7 (0.64691794), X8 (0.65565881) y X11 (0.66002426), a diferencia de las otras variables que tienen una variablidad entre 0.8 y 1.33. 
+
+### B. Realiza la prueba de Mardia y Anderson Darling de las variables que sí tuvieron normalidad en los incisos anteriores. Interpreta los resultados obtenidos con base en ambas pruebas y en la interpretación del sesgo y la curtosis de cada una de ellas.
+
+```{r}
+dbNorm = data.frame("X4" = db$X4, "X10"=db$X10)
+## Test de Multinomalidad: Método Sesgo y kurtosis de Mardia
+mvn(dbNorm,subset = NULL,mvn = "mardia", covariance = FALSE,showOutliers = FALSE, alpha=0.05)
+```
+En la prueba de Mardia indica si un grupo de variables sigue o no una distribución normal multivariante. Dado que el valor de p de la skewness (0.18642) y kurtosis (0.2592) no son menores a 0.05, entonces no se rechaza la hipótesis H0 (los datos se distribuyen normalmente). De la misma manera, en la prueba de Anderson-Darling no se rechaza la hipótesis H0 ya que el valor p de la variable X4 es 0.4611 y de la variable X10 es 0.0810 ambos valores no son menores a 0.05.
+
+### C. Haz la gráfica de contorno de la normal multivariada obtenida en el inciso B.
+
+A partir de este gráfico, podemos decir que existe una correlación negativa entre las variables ya que en caso contrario, si la correlación fuera nula, las curvas de nivel serían de forma circular y no elípticas. Además, al observar los contornos se puede notar un sesgo en la gráfica, sin embargo, las pruebas realizadas indican que si es multivariado. 
+
+```{r}
+mvn(dbNorm, mvnTest = "mardia", multivariatePlot = "contour")
+
+```
+
+### D. Detecta datos atípicos o influyentes en la normal multivariada encontrada en el inciso B (auxíliate de la distancia de Mahalanobis y del gráfico QQplot multivariado)
+
+```{r}
+p=2
+# Vector de medias
+X = colMeans(dbNorm)
+#Matriz de covarianza
+S = cov(dbNorm)
+#Distancia de Mahalanobis
+d2M = mahalanobis(dbNorm,X,S)
+
+#Multinormalidad Test gráfico Q-Q Plot
+plot(qchisq(((1:nrow(dbNorm)) - 1/2)/nrow(dbNorm),df=p),sort( d2M ) )
+abline(a=0, b=1,col="red")
+```
+
+De acuerdo con la gráfica de QQ-Plot se puede notar que la gráfica de probabilidad normal tiene una asimetría negativa con sesgo a la izquierda ya que no se aproxima en su totalidad a la línea y = x. Además, se puede observar que este conjunto de datos no parece seguir una distribución normal específicamente en la cola que se encuentra a la derecha.
+
+## 3.2 Análisis de componentes principales con la base de datos completa para identificar los factores principales que intervienen en el problema de la contaminación por mercurio de los peces en agua dulce.
+
+### A. Justifique por qué es adecuado el uso de componentes principales para analizar la base (haz uso de la matriz de correlaciones)
+```{r}
+R = cor(dbNum)
+print("Matriz de correlaciones:")
+R
+```
+
+Es esencial el uso de componentes principales para analizar la base dado que se puede investigar el conjunto de datos multidimensionales para visualizar y analizar las correlaciones entre las variables para limitar el número de variables.
+Además, el uso de la matriz de correlaciones asegura que se le dé la misma importancia a todas las variables, ya que en la matriz de correlaciones todos los elementos de la diagonal son iguales a 1. De esta manera, se realizan los cálculos de los componentes sobre variables originales estandarizadas, es decir, que tienen media 0 y varianza 1. 
+
+### B. Realiza el análisis de componentes principales y justifica el número de componentes principales apropiados para reducir la dimensión de la base
+```{r}
+print("Valores propios:")
+valP = eigen(R)$values
+valP
+print("Vectores propios:")
+vecP = eigen(R)$vectors  
+vecP
+
+print("Lambdas: ")
+lambdasC = eigen(R)[1]
+lambdasC
+
+print("Varianza total:")
+varTotalC = sum(diag(R))
+varTotalC
+
+print("Proporción de varianza explicada por cada componente: ")
+propC = as.numeric(unlist(lambdasC))/varTotalC
+propC
+
+print("Cumsum: ")
+cumsum(propC)
+```
+
+```{r}
+A =prcomp(dbNum, scale=TRUE)
+summary(A)
+```
+
+De acuerdo con los valores de la proporción de varianza (PC1 = 0.592 y PC2 = 0.7297) y la proporción acumulada (0.7297) se utilizarán los primeros dos componentes principales. 
+
+El primer componente principal de la matriz de correlaciones sería:
+
+Y1 = - 0.35136146*X1 - 0.40301855*X2 - 0.07586402*X3 + 0.30359419*X4 + 0.03194121*X5 + 0.284360283*X6 + 0.72620919*X7 - 0.082971700*X8 + 0.007161703*X9
+
+Las variables que más contribuyen al primer componente principal son X7 (mínimo de la concentración de mercurio en cada grupo de peces), X2 (PH), X1 (alcalinidad), X4 (clorofila) y X6 (número de peces estudiados en el lago).
+
+El segundo componente principal de la matriz de correlaciones sería:
+
+Y2 = - 0.33907420*X1 - 0.29786166*X2 - 0.07470140*X3 - 0.23236707*X4 - 0.82623084*X5  + 0.054271109*X6 - 0.22348526*X7 + 0.009782475*X8 - 0.032988603*X9
+
+Las variables que más contribuyen al segundo componente principal son: X5 (concentración media de mercurio (parte por millón) en el tejido muscular del grupo de peces estudiados en cada lago), X1 (alcalinidad), X2 (PH), X4 (clorofila) y X7 (mínimo de la concentración de mercurio en cada grupo de peces).
+
+Las variables más importantes de cada componente se obtienen observando los coeficientes de cada variable y en valor absoluto los que sean mayores son los que contribuyen más a la determinación de dicho componente principal. 
+
+Además, se puede observar que la proporción de la varianza del primer componente es de 0.593989799 y del segundo es 0.135656432 lo que indica el porcentaje de contribución de cada componente principal. También, utilizando los valores obtenidos para la proporción acumulada se tiene que los primeros dos componentes agrupan un 72.96% de la variación. 
+
+### C. Representa en un gráfico los vectores asociados a las variables y las puntuaciones de las observaciones de las dos primeras componentes
+
+El análisis de PCA se realizará al grupo de las variables X3 a X11 ya que son las variables numéricas para realizar un análisis exploratorio de los datos. De esta manera podremos visualizar de mejor manera la variación que existe entre las diferentes variables. 
+
+```{r}
+library(FactoMineR)
+library(stats)
+library(factoextra)
+library(ggplot2)
+datos=dbNum
+cp3 = PCA(datos)
+```
+En la primera gráfica (PCA de los individuales) se muestran las observaciones en relación de los primeros dos componentes principales. Por lo tanto, se muestra que el componente principal 1 logra explicar una mayor cantidad de la variación ya que las observaciones se esparsen a lo largo del eje x; mientras que en el eje y que representa la dimensión del componente principal 2 no se nota lo mismo.
+
+En la segunda gráfica (PCA por variables) se muestra de mejor manera que para el componente principal 1 se logra explicar el 59.40 % de la variación mientras que en el componente principal 2 solo se explica el 13.57%. Además, las variables de importancia para el primer componente son X7, X9, X10 y X11 con valores positivos y X3, X4, X5 y X6 con valores negativos; mientras que la variables más importantes para el componente 2 son X3, X4, X5, X6, X7, X9, X10 y X11 con valores positivos y X8 con valor negativo. 
+
+
+```{r}
+fviz_screeplot(cp3)
+```
+
+Asimismo, en el screeplot, se observa que el porcentaje de las varianzas explicadas para el componente 1 es del 59.40%, el porcentaje en el componente 2 es de 13.57% y se muestra que los componentes principales 3 y 4 también explican gran cantidad de la variabilidad. 
+
+```{r}
+fviz_contrib(cp3, choice = c("var"))
+```
+
+Por último, en la gráfica de contribución de variables del componente principal 1 se muestra una línea roja que indica el valor medio de contribución. Por lo tanto, las variables con una contribución mayor a este límite son importantes para este componente. Entonces las variables X11, X7, X10, X9, X3 y X4 son las que más contribuyen al componente principal 1. 
+
+### D. Explique brevemente a qué conclusiones llega con su análisis y qué significado tienen los componentes seleccionados en el contexto del problema
+
+Después de haber realizado el análisis de PCA se pued concluir que las variables más significativas en el análisis de normalidad son el X4 y el X10. Mientras que en el análisis de componentes principales son las variables X3, X4, X7, X9, X10 y X11. 
+
+
+# 4. Conclusión 
+
+En el análisis realizado anteriormente se obtuvo que las variables más relevantes para contestar las preguntas seleccionadas son X3 (alcalinidad), X5 (calcio), X6 (clorofila) y X7 (concentración media de mercurio). Sin embargo, el análisis realizado para esta entrega difiere un poco con los resultados anteriores dado que se realizaron para toda la base de datos mientras que en el análisis pasado nosotros seleccionamos cuáles variables utilizar para los modelos. Considero que este nuevo análisis fue más completo ya que se estandarizaron los datos y se le dio la misma importancia a todas las variables de modo que generaron resultados más precisos. Teniendo en cuenta la pregunta principal, los principales factores que influyen en el nivel de contaminación por mercurio en los peces de los lagos de Florida fueron X3 (alcalinidad), X4 (PH), X7 (concentración media de mercurio), X9 (mínimo de concentración de mercurio), X10 (máximo de concentración de mercurio) y X11 (estimación de la concentración de mercurio en el pez de 3 años). Por un lado, el estudio de normalidad nos permitió visualizar cuánto difiere la distribución de los datos respecto a lo que esperamos, de esta forma se logra observar qué variables tienen mejor precisión y fiabilidad. Además, para este análisis fue de suma importancia la creación de componentes principales ya que fue un método que ayudó a simplificar la complejidad del espacio muestral con varias dimensiones para poder seleccionar las variables que son más significativas.
+
+# 5. Referencias bibliográficas
+
+Korkmaz, S. (2022, October 12). Package ‘MVN.’ MVN: Multivariate Normality Tests. Retrieved December 1, 2022, from https://cran.r-project.org/web/packages/MVN/MVN.pdf 
+
+Amat, J. (2017, June). Análisis de Componentes Principales (Principal Component Analysis, PCA) y t-SNE: RPubs. Retrieved December 1, 2022, from https://rpubs.com/Joaquin_AR/287787
+
+# 6. Anexos
+
+https://github.com/A01750185/E2-PortafolioImplementacion.git
